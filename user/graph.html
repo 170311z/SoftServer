@@ -1,0 +1,102 @@
+<?php
+	//DBの情報
+	$db['host'] = "";
+	$db['user'] = "";
+	$db['pass'] = "";
+	$db['dbname'] = "";
+	
+	$errorMessage = "";	
+	//表示用とDBの文字コードを設定
+	$enc_disp = "EUC-JP";
+	$enc_db = "EUC-JP";
+	
+	//データの文字コードを変換する用の関数
+	function cnv_enc($string, $to, $from) {
+		$det_enc = mb_detect_encoding($string, $from . "," . $to);
+		if ($det_enc and $det_enc != $to) {
+			return mb_convert_encoding($string, $to, $det_enc);
+		}
+		else {
+			return $string;
+		}
+	}
+	
+	//データベースに接続スクリプト
+	$mysqli = new mysqli($db['host'], $db['user'], $db['pass']);
+	if ($mysqli->connect_errno) {
+		print('<p>データベースへの接続に失敗しました。</p>' . $mysqli->connect_error);
+		exit();
+	}
+	$mysqli->select_db($db['dbname']);
+	
+	//エリア確認用
+	$area_id = $_GET['area'];
+	//print($area_id);
+
+	//データの取り出し
+	//sql文
+	$time = "SELECT time FROM soundinfo WHERE area_id = '" . $area_id . "' ORDER BY siID DESC LIMIT 12";
+	$res = $mysqli->query($time);
+	if (!$res) {
+		print('クエリが失敗しました。' . $mysqli->error);
+		$mysqli->close();
+		exit();
+	}
+	$data1 = array();
+	//$data1 = array_reverse($data_a, true);
+	while($row = mysqli_fetch_row($res)) {		
+		array_push($data1,$row);
+	}
+	
+	$level = "SELECT level FROM soundinfo WHERE area_id = '" . $area_id . "' ORDER BY siID DESC LIMIT 12";
+	$res = $mysqli->query($level);
+	if (!$res) {
+		print('クエリが失敗しました。' . $mysqli->error);
+		$mysqli->close();
+		exit();
+	}
+
+	$data2 = array();
+	//$data2 = array_reverse($data_2);
+	while($row = mysqli_fetch_row($res)) {
+		array_push($data2,$row);
+	}
+	$mysqli->close();
+
+?>
+
+
+<html>
+<head>
+  <title>test</title>
+<!--[if IE]><script type="text/javascript" src="./html5jp/excanvas/excanvas.js"></script><![endif]-->
+<script type="text/javascript" src=".././html5jp/graph/line.js"></script>
+<script type="text/javascript"> 
+window.onload = function() {
+  var time = <?php echo json_encode($data1, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+  var db = <?php echo json_encode($data2, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+  var lg = new html5jp.graph.line("sample");    
+  if( ! lg ) { return; }
+  var items = [
+    ["騒音レベル",''+db[11], ''+db[10], ''+db[9],''+db[8], ''+db[7], ''+db[6], ''+db[5], ''+db[4], ''+db[3],''+db[2],''+db[1], ''+db[0]]
+   ];
+   var params = {
+    x: ["時間", ''+time[11], ''+time[10], ''+time[9],''+time[8], ''+time[7], ''+time[6], ''+time[5], ''+time[4], ''+time[3],''+time[2],''+time[1],''+time[0]],
+    y: ["騒音レベル(Hz)", 0, 20, 40, 60, 80, 100],
+    yMax: 100,
+    yMin: 0,
+    lineWidth: [1,2],
+    dotRadius: [3,4],
+    dotType: ["disc", "square"]
+   };
+  lg.draw(items, params);
+};
+</script>
+</head>
+
+<body>
+
+<div><canvas width="1400" height="600" id="sample"></canvas></div>
+
+</body>
+</html>
